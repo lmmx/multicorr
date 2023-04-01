@@ -15,6 +15,19 @@ null_indicator = data[target_column].isnull()
 data[null_target] = null_indicator.astype(int)
 original_cols = list(data.columns)
 
+
+def name_multicat(s: pd.Series) -> str:
+    return ":".join("_".join(t) for t in s.items())
+
+
+def unpack_multicat(name: str) -> pd.Series:
+    return pd.Series(
+        {k: v for cat in name.split(":") for k, v in dict([cat.split("_")]).items()}
+    )
+
+
+null_combos = data[null_indicator][cat_cols].drop_duplicates()
+multicats = null_combos.astype(str).apply(name_multicat, axis=1)
 # List all possible combinations of the categorical columns
 combinations = list(product(*[data[null_indicator][cat].unique() for cat in cat_cols]))
 
