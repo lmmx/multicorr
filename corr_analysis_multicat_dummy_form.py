@@ -1,3 +1,4 @@
+from functools import partial
 from itertools import product
 
 import numpy as np
@@ -30,29 +31,25 @@ def dummy_2d(s: pd.Series) -> pd.Series:
     return pd.Series({name_multicat(s): 1})
 
 
-# def dummy_check(row: pd.Series) -> pd.Series:
-#     return ...
+def check_dummies_2d(row: pd.Series, dummy_cols: pd.Index) -> pd.Series:
+    """Stringifies input series (row) and gives a bool of whether it's a dummy var."""
+    return pd.Series(
+        dummy_cols.str.fullmatch(name_multicat(row[cat_cols].astype(str))),
+        index=dummy_cols,
+    )
+
 
 null_combos = data[null_indicator][cat_cols].drop_duplicates()
 dummy_vars = null_combos.astype(str).apply(dummy_2d, axis=1).fillna(0).astype(int)
+dummy_cols = dummy_vars.columns
 # List all possible combinations of the categorical columns
 # combinations = list(product(*[data[null_indicator][cat].unique() for cat in cat_cols]))
-
-# Create a new column for each combo and fill it with zeros
-# for combo in combinations:
-#     column_name = "_".join([str(value) for value in combo])
-#     data[column_name] = 0
-
-# Fill the new columns with ones where the corresponding combo is present
-for index, row in data.iterrows():
-    for combo in combinations:
-        column_name = "_".join([str(value) for value in combo])
-        if all(row[column] == value for column, value in zip(cat_cols, combo)):
-            data.at[index, column_name] = 1
+check_2d_dummy_cols = partial(check_dummies_2d, dummy_cols=dummy_cols)
+full_dummies = data[cat_cols].apply(check_2d_dummy_cols, axis=1).astype(int)
+data_with_dummies = pd.concat([data, full_dummies], axis=1)
 
 # Calculate the correlation between the binary column and the new columns
-dummy_cols = data.columns.drop(original_cols)
-correlation_matrix = data[[target, *dummy_cols]].corr(numeric_only=True)
+correlation_matrix = data_with_dummies[[target, *dummy_cols]].corr(numeric_only=True)
 
 # Display the correlations between the binary column and the new columns
 correlations_with_target = correlation_matrix[target].loc[dummy_cols]
