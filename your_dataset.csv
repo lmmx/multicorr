@@ -1,0 +1,9 @@
+id,categorical_column_1,categorical_column_2,categorical_column_3,target_column
+1,A,A,C,10
+2,B,A,C,20
+3,A,B,C,30
+4,B,B,C,
+5,A,A,C,50
+6,B,A,C,60
+7,A,B,C,70
+8,B,B,C,
