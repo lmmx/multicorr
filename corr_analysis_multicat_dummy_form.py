@@ -44,7 +44,7 @@ for index, row in data.iterrows():
             data.at[index, column_name] = 1
 
 # Calculate the correlation between the binary column and the new columns
-dummy_cols = [col for col in data.columns if col not in original_cols]
+dummy_cols = data.columns.drop(original_cols)
 corr_cols = [null_target, *dummy_cols]
 correlation_matrix = data[corr_cols].corr(numeric_only=True)
 
