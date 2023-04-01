@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from functools import partial
-from itertools import product
+from itertools import chain, combinations, product
 
 import numpy as np
 import pandas as pd
@@ -38,20 +40,46 @@ def dummy_2d(s: pd.Series) -> pd.Series:
     return pd.Series({name_multicat(s): 1})
 
 
-def check_dummies_2d(row: pd.Series, dummy_cols: pd.Index) -> pd.Series:
+def check_dummies_2d(
+    row: pd.Series, dummy_cols: pd.Index, null_levelsets: list[tuple[str, ...]]
+) -> pd.Series:
     """Stringifies input series (row) and gives a bool of whether it's a dummy var."""
-    return pd.Series(
-        dummy_cols.str.fullmatch(name_multicat(row[cat_cols].astype(str))),
-        index=dummy_cols,
+    checks = [
+        dummy_cols.str.fullmatch(name_multicat(row[null_levels].astype(str)))
+        for null_levels in null_levelsets
+    ]
+    return pd.DataFrame(checks, columns=dummy_cols).any()
+
+
+def null_levelsets(cat_cols):
+    n_cats = len(cat_cols)
+    idx_combos = list(
+        chain.from_iterable(
+            combinations(range(n_cats), r=r) for r in range(1, n_cats + 1)
+        )
     )
+    return [list(map(cat_cols.__getitem__, idxs)) for idxs in idx_combos]
+
+
+def powerset_dummies_2d(nullspace, null_levelsets):
+    ns_combos = [
+        nullspace[null_levels].astype(str).apply(dummy_2d, axis=1).fillna(0).astype(int)
+        for null_levels in null_levelsets
+    ]
+    dummies = pd.concat(ns_combos, axis=0).fillna(0).astype(int).drop_duplicates()
+    return dummies
 
 
 null_combos = data[null_indicator][cat_cols].drop_duplicates()
-dummy_vars = null_combos.astype(str).apply(dummy_2d, axis=1).fillna(0).astype(int)
+# dummy_vars = null_combos.astype(str).apply(dummy_2d, axis=1).fillna(0).astype(int)
+null_ls = null_levelsets(cat_cols)
+dummy_vars = powerset_dummies_2d(nullspace=null_combos, null_levelsets=null_ls)
 dummy_cols = dummy_vars.columns
+
 # List all possible combinations of the categorical columns
-# combinations = list(product(*[data[null_indicator][cat].unique() for cat in cat_cols]))
-check_2d_dummy_cols = partial(check_dummies_2d, dummy_cols=dummy_cols)
+check_2d_dummy_cols = partial(
+    check_dummies_2d, dummy_cols=dummy_cols, null_levelsets=null_ls
+)
 full_dummies = data[cat_cols].apply(check_2d_dummy_cols, axis=1).astype(int)
 data_with_dummies = pd.concat([data, full_dummies], axis=1)
 
