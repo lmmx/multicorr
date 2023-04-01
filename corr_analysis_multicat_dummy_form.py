@@ -81,13 +81,31 @@ check_2d_dummy_cols = partial(
     check_dummies_2d, dummy_cols=dummy_cols, null_levelsets=null_ls
 )
 full_dummies = data[cat_cols].apply(check_2d_dummy_cols, axis=1).astype(int)
-data_with_dummies = pd.concat([data, full_dummies], axis=1)
+invar_cols = full_dummies.columns[full_dummies.all()]
+data_with_dummies = pd.concat(
+    [data, full_dummies.drop(columns=invar_cols).reset_index(drop=True)], axis=1
+)
+var_dummy_cols = dummy_cols.drop(invar_cols)
 
 # Calculate the correlation between the binary column and the new columns
-correlation_matrix = data_with_dummies[[target, *dummy_cols]].corr(numeric_only=True)
+correlation_matrix = data_with_dummies[[target, *var_dummy_cols]].corr(
+    numeric_only=True
+)
+
+# Define a custom key function that sorts by value and then by the length of the key
+def measure_parsimony(item):
+    return (item[1], -len(item[0].split(cat_sep)))
+
+
+def parsimonious_sort(s: pd.Series):
+    parsimony = sorted(s.items(), key=measure_parsimony, reverse=True)
+    return pd.Series(dict(parsimony))
+
 
 # Display the correlations between the binary column and the new columns
-correlations_with_target = correlation_matrix[target].loc[dummy_cols]
+correlations_with_target = correlation_matrix[target].loc[var_dummy_cols]
+correlations_with_target = parsimonious_sort(correlations_with_target)
+
 print(correlations_with_target)
 
 assert correlations_with_target.max() == 1.0
