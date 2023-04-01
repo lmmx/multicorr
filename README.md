@@ -56,3 +56,44 @@ c2_B:c3_C         0.57735
 
 We see the "`c1` B `c2` B" value is top, and the redundant info is lower, we penalise it for its
 redundant info.
+
+## Alternatives: logistic regression
+
+I tried a simple logreg and found the same interpretation.
+
+- see `logreg_interaction.py`
+
+```
+         Current function value: 0.173287
+         Iterations: 35
+/home/louis/miniconda3/lib/python3.10/site-packages/statsmodels/base/model.py:604: ConvergenceWarning: Maximum Likelihood optimization failed to converge. Check mle_retvals
+  warnings.warn("Maximum Likelihood optimization failed to "
+                           Logit Regression Results                           
+==============================================================================
+Dep. Variable:                 null_v   No. Observations:                    8
+Model:                          Logit   Df Residuals:                        5
+Method:                           MLE   Df Model:                            2
+Date:                Sat, 01 Apr 2023   Pseudo R-squ.:                  0.6918
+Time:                        21:01:31   Log-Likelihood:                -1.3863
+converged:                      False   LL-Null:                       -4.4987
+Covariance Type:            nonrobust   LLR p-value:                   0.04449
+==============================================================================
+                 coef    std err          z      P>|z|      [0.025      0.975]
+------------------------------------------------------------------------------
+c1_B       -7.136e-05        nan        nan        nan         nan         nan
+c2_B       -7.133e-05   3.11e+12  -2.29e-17      1.000    -6.1e+12     6.1e+12
+c1c2_A:B     -20.8065   3.11e+12  -6.69e-12      1.000    -6.1e+12     6.1e+12
+c1c2_B:A     -20.8065        nan        nan        nan         nan         nan
+c1c2_B:B      20.8065   2.54e+12   8.19e-12      1.000   -4.98e+12    4.98e+12
+==============================================================================
+
+Possibly complete quasi-separation: A fraction 0.75 of observations can be
+perfectly predicted. This might indicate that there is complete
+quasi-separation. In this case some parameters will not be identified.
+```
+
+- It didn't converge (it's a toy dataset, might be too few data points or class imbalance)
+- It correctly found strong anticorrelations in the interaction terms of c1 and c2 (A and B / vice versa), which were **never** associated with null values
+- It correctly found strong correlations in the interaction term of c1_B and c2_B
+
+In practice I expect I'd opt for this instead (but is it truly more efficient and straightforward when the categories are absolutely separable?).
