@@ -26,15 +26,22 @@ def unpack_multicat(name: str) -> pd.Series:
     )
 
 
+def dummy_2d(s: pd.Series) -> pd.Series:
+    return pd.Series({name_multicat(s): 1})
+
+
+# def dummy_check(row: pd.Series) -> pd.Series:
+#     return ...
+
 null_combos = data[null_indicator][cat_cols].drop_duplicates()
-multicats = null_combos.astype(str).apply(name_multicat, axis=1)
+dummy_vars = null_combos.astype(str).apply(dummy_2d, axis=1).fillna(0).astype(int)
 # List all possible combinations of the categorical columns
-combinations = list(product(*[data[null_indicator][cat].unique() for cat in cat_cols]))
+# combinations = list(product(*[data[null_indicator][cat].unique() for cat in cat_cols]))
 
 # Create a new column for each combo and fill it with zeros
-for combo in combinations:
-    column_name = "_".join([str(value) for value in combo])
-    data[column_name] = 0
+# for combo in combinations:
+#     column_name = "_".join([str(value) for value in combo])
+#     data[column_name] = 0
 
 # Fill the new columns with ones where the corresponding combo is present
 for index, row in data.iterrows():
