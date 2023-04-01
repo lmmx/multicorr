@@ -4,6 +4,9 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
+cat_sep = ":"
+lvl_sep = "_"
+
 # Load your dataset
 data = pd.read_csv("simple_dataset.csv")
 
@@ -18,12 +21,16 @@ original_cols = data.columns
 
 
 def name_multicat(s: pd.Series) -> str:
-    return ":".join("_".join(t) for t in s.items())
+    return cat_sep.join(map(lvl_sep.join, s.items()))
 
 
 def unpack_multicat(name: str) -> pd.Series:
     return pd.Series(
-        {k: v for cat in name.split(":") for k, v in dict([cat.split("_")]).items()}
+        {
+            k: v
+            for cat in name.split(cat_sep)
+            for k, v in dict([cat.split(lvl_sep)]).items()
+        }
     )
 
 
